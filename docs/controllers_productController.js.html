@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: controllers/productController.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: controllers/productController.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const catchAsyncError = require('../middleware/catchAsyncError');
+const Product = require('../models/productModel');
+const ErrorHandler = require('../utils/errorhandler');
+const logger =  require('../utils/logger');
+
+/**
+ * Create a new product.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function.
+ * @returns {Promise&lt;void>} - A Promise that resolves when the product is created.
+ * @throws {Error} - If an error occurs while creating the product.
+ */
+
+//create product
+exports.createProduct = catchAsyncError(async (req, res, next) => {
+    try {
+
+        req.body.user = req.user.id;
+        const product = await Product.create(req.body);
+
+
+        res.status(201).json({
+            success: true,
+            product,
+        });
+        logger.info("product created")
+    } catch (error) {
+        next(error);
+        logger.error("product not created !")
+    }
+    
+});
+
+/**
+ * Get details of a single product.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function.
+ * @returns {Promise&lt;void>} - A Promise that resolves with the product details.
+ * @throws {Error} - If the product is not found.
+ */
+
+//single product detail
+exports.getProductDetails =  catchAsyncError(async(req,res,next)=>{
+  const product = await Product.findById(req.params.id);
+
+  if(!product){
+      return next(new ErrorHandler("product Not found",404))
+  }
+
+  
+
+  res.status(200).json({
+      success:true,
+      product
+  })
+
+  logger.info("single product detail")
+})
+
+
+/**
+ * Update a product by ID.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise&lt;void>} - A Promise that resolves with the updated product.
+ * @throws {Error} - If the product is not found.
+ */
+
+//Update Product -- Admin
+exports.updateProduct =catchAsyncError( async (req,res)=>{
+  let product = Product.findById(req.params.id);
+
+  if(!product){
+      return next(new ErrorHandler("product Not found",404))
+  }
+
+
+  product =  await Product.findByIdAndUpdate(req.params.id,req.body,{
+      new:true,
+      runValidators:true,
+      useFindAndModify:false
+  });
+
+  res.status(200).json({
+      success:true,
+      product
+  })
+
+  logger.info("product Updated !")
+})
+
+/**
+ * Delete a product by ID.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @returns {Promise&lt;void>} - A Promise that resolves when the product is deleted.
+ * @throws {Error} - If the product is not found.
+ */
+
+//delete product --admin
+exports.deleteProduct = catchAsyncError(async (req,res,next)=>{
+
+  const product = await Product.findById(req.params.id);
+
+  if(!product){
+      return next(new ErrorHandler("product Not found",404))
+  }
+  else{
+    await Product.findByIdAndRemove(req.params.id)
+  }
+
+
+ res.status(200).json({
+  sucess:true,
+  message:"Product deleted succesfully"
+ })
+
+ logger.info("product deleted sucessfully !")
+})
+
+
+/**
+ * This function retrieves all products with optional filters and pagination. It allows filtering by keyword, animal, treatment, dailyEssential, and medicalCare. The filters are applied to the Product.find query to retrieve the matching products. The results are paginated using the page and pageSize parameters. The function returns a JSON response with the count of total products, the current page, the number of pages, and the retrieved products. If an error occurs, it calls the next function with the error.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function.
+ * @returns {Promise&lt;void>} - A Promise that resolves with the products data.
+ * @throws {Error} - If there is an error retrieving the products.
+ */
+
+//show All Products
+exports.showAllProducts = catchAsyncError(async (req, res, next) => {
+    try {
+      // enable search
+      const keyword = req.query.keyword
+        ? {
+            name: {
+              $regex: req.query.keyword,
+              $options: 'i',
+            },
+          }
+        : {};
+  
+      // enable filter by animal
+      const animalId = req.query.animal;
+      const animalFilter = animalId ? { animal: animalId } : {};
+  
+      // enable filter by treatment
+      const treatmentId = req.query.treatment;
+      const treatmentFilter = treatmentId ? { treatment: treatmentId } : {};
+  
+      //enable filter by essentials
+      const essentialId = req.query.dailyEssential;
+      const essentialFilter = essentialId ? {dailyEssential: essentialId}: {};
+
+      //enable filter by medical care
+      const medicalCareId = req.query.medicalCare;
+      const medicalCareFilter =  medicalCareId ? {medicalCare: medicalCareId}:{};
+
+      // enable pagination
+      const pageSize = 4;
+      const page = Number(req.query.pageNumber) || 1;
+  
+   // construct the filter based on the keyword and any additional filters
+   const filter = {
+    ...keyword,
+    ...animalFilter,
+    ...treatmentFilter,
+    ...essentialFilter,
+    ...medicalCareFilter,
+  };
+      const count = await Product.find(filter).countDocuments();
+      const products = await Product.find(filter)
+        .skip(pageSize * (page - 1))
+        .limit(pageSize);
+  
+      res.status(200).json({
+        success: true,
+        count,
+        products,
+        page,
+        pages: Math.ceil(count / pageSize),
+      });
+    } catch (error) {
+      next(error);
+      logger.error("show all products error")
+    }
+  });
+  
+
+
+/**
+ * Create a new review or update an existing review for a product.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function.
+ * @returns {Promise&lt;void>} - A Promise that resolves with the updated product review.
+ * @throws {Error} - If there is an error creating or updating the review.
+ */
+
+
+//Create New review or Update the review
+exports.createProductReview = catchAsyncError(async(req,res,next)=>{
+
+  const {rating,comment,productId} = req.body;
+
+  const review ={
+      user:req.user._id,
+      name:req.user.name,
+      rating:Number(rating),
+      comment,
+  }
+
+  const product =  await Product.findById(productId);
+
+  const isReviewed = product.reviews.find(rev =>rev.user.toString() === req.user._id.toString());
+
+  if(isReviewed){
+      product.reviews.forEach(rev =>{
+          if( rev.user.toString() === req.user._id.toString())
+          rev.rating = rating;
+          rev.comment = comment;
+      })
+  }
+  else{
+      product.reviews.push(review)
+      product.numOfReviews = product.reviews.length
+  }
+ 
+  let avg = 0;
+  product.ratings = product.reviews.forEach(rev=>{
+      avg+=rev.rating;
+  })
+  
+  product.ratings = avg/product.reviews.length;
+
+  await product.save({validateBeforeSave:false})
+
+  res.status(200).json({
+      success:true,
+      review
+  })
+  logger.info("review added or updated!")
+})
+
+
+/**
+ * Get all reviews of a product. This function retrieves all reviews for a product. It takes the product ID from the request query parameters, finds the product using the Product model, and returns the reviews as a JSON response. If the product is not found, it calls the next function with an error.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function.
+ * @returns {Promise&lt;void>} - A Promise that resolves with the reviews of the product.
+ * @throws {Error} - If there is an error retrieving the reviews.
+ */
+
+//Get All Reviews of a Product
+
+exports.getProductReviews = catchAsyncError(async(req,res,next)=>{
+  const product = await Product.findById(req.query.id);
+
+  if(!product){
+      return next(new ErrorHandler("product not found",404));
+  }
+
+  res.status(200).json({
+      success:true,
+      reviews:product.reviews,
+  })
+  logger.info("get reviews of a single product !")
+})
+
+/**
+ * This function allows users to delete their review for a product. It takes the product ID and review ID from the request query parameters. It finds the product using the product ID, filters out the specified review from the product's reviews array, recalculates the average rating and number of reviews, and updates the product using Product.findByIdAndUpdate. It returns a JSON response indicating the success of the deletion.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function.
+ * @returns {Promise&lt;void>} - A Promise that resolves with the success status.
+ * @throws {Error} - If there is an error deleting the review.
+ */
+
+//Delete Review
+exports.deleteReview = catchAsyncError(async (req,res,next)=>{
+  const product = await Product.findById(req.query.productId);
+
+  if(!product){
+      return next(new ErrorHandler("Product not found",404));
+  }
+
+  const reviews = product.reviews.filter(
+      rev => rev._id.toString() != req.query.id.toString())
+   //          reviewID             userID
+  let avg =0;
+
+  reviews.forEach((rev)=>{
+      avg += rev.rating;
+  })
+
+  const ratings = avg/ reviews.length;
+
+  const numOfReviews = reviews.length;
+
+  await Product.findByIdAndUpdate(req.query.productId,{
+      reviews,
+      ratings,
+      numOfReviews,
+  },{
+      new:true,
+      runValidators:true,
+      useFindAndModify:false
+  })
+
+  res.status(200).json({
+      success:true,
+  })
+
+  logger.info("Review deleted !")
+})
+
+
+//-----------------ADMIN---------------------
+
+/**
+ * Get all products (admin).This function is specifically for administrators. It retrieves all products using the Product.find method and returns them as a JSON response.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function.
+ * @returns {Promise&lt;void>} - A Promise that resolves with the list of products.
+ * @throws {Error} - If there is an error retrieving the products.
+ */
+
+//get all products
+exports.getAdminProducts = catchAsyncError(async (req,res,next) =>{
+
+  const products = await Product.find()
+
+  res.status(200).json({
+      success:true,
+      products,
+  })
+
+  logger.info("get all products admin !")
+} )
+
+
+
+
+
+
+
+
+
+
+
+
+
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ErrorHandler.html">ErrorHandler</a></li></ul><h3>Events</h3><ul><li><a href="server.html#.event:listen">listen</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addVarieties">addVarieties</a></li><li><a href="global.html#allAnimalType">allAnimalType</a></li><li><a href="global.html#allEssentialsType">allEssentialsType</a></li><li><a href="global.html#allTreatmentType">allTreatmentType</a></li><li><a href="global.html#allmedicalCareType">allmedicalCareType</a></li><li><a href="global.html#catchAsyncErrors">catchAsyncErrors</a></li><li><a href="global.html#connectDatabase">connectDatabase</a></li><li><a href="global.html#createAnimalType">createAnimalType</a></li><li><a href="global.html#createEssentialsType">createEssentialsType</a></li><li><a href="global.html#createMedicalType">createMedicalType</a></li><li><a href="global.html#createProduct">createProduct</a></li><li><a href="global.html#createProductReview">createProductReview</a></li><li><a href="global.html#createTreatmentType">createTreatmentType</a></li><li><a href="global.html#deleteAnimalType">deleteAnimalType</a></li><li><a href="global.html#deleteEssentialType">deleteEssentialType</a></li><li><a href="global.html#deleteMedicalCareType">deleteMedicalCareType</a></li><li><a href="global.html#deleteOrder">deleteOrder</a></li><li><a href="global.html#deleteProduct">deleteProduct</a></li><li><a href="global.html#deleteReview">deleteReview</a></li><li><a href="global.html#deleteTreatmentType">deleteTreatmentType</a></li><li><a href="global.html#deleteVarieties">deleteVarieties</a></li><li><a href="global.html#errorHandler">errorHandler</a></li><li><a href="global.html#forgotPassword">forgotPassword</a></li><li><a href="global.html#getAdminProducts">getAdminProducts</a></li><li><a href="global.html#getAllOrders">getAllOrders</a></li><li><a href="global.html#getAllUser">getAllUser</a></li><li><a href="global.html#getProductDetails">getProductDetails</a></li><li><a href="global.html#getProductReviews">getProductReviews</a></li><li><a href="global.html#getSingleOrder">getSingleOrder</a></li><li><a href="global.html#getSingleUser">getSingleUser</a></li><li><a href="global.html#getUserDetails">getUserDetails</a></li><li><a href="global.html#getVaritiesDetails">getVaritiesDetails</a></li><li><a href="global.html#isAuthenticatedUser">isAuthenticatedUser</a></li><li><a href="global.html#loginUser">loginUser</a></li><li><a href="global.html#logout">logout</a></li><li><a href="global.html#myOrders">myOrders</a></li><li><a href="global.html#newOrder">newOrder</a></li><li><a href="global.html#registerUser">registerUser</a></li><li><a href="global.html#resetPassword">resetPassword</a></li><li><a href="global.html#sendEmail">sendEmail</a></li><li><a href="global.html#showAllProducts">showAllProducts</a></li><li><a href="global.html#updateAnimalType">updateAnimalType</a></li><li><a href="global.html#updateEssentialType">updateEssentialType</a></li><li><a href="global.html#updateOrderStatus">updateOrderStatus</a></li><li><a href="global.html#updatePassword">updatePassword</a></li><li><a href="global.html#updateProduct">updateProduct</a></li><li><a href="global.html#updateProfile">updateProfile</a></li><li><a href="global.html#updateStock">updateStock</a></li><li><a href="global.html#updateUserRole">updateUserRole</a></li><li><a href="global.html#updateVarieties">updateVarieties</a></li><li><a href="global.html#updatemedicalCareType">updatemedicalCareType</a></li><li><a href="global.html#updatetreatmentType">updatetreatmentType</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Sat Jun 10 2023 13:11:57 GMT+0530 (India Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

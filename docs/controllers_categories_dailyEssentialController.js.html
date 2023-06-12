@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: controllers/categories/dailyEssentialController.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: controllers/categories/dailyEssentialController.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const Essential =  require('../../models/categories/dailyEssentials');
+const catchAsyncErrors = require('../../middleware/catchAsyncError');
+
+
+/**
+ * This function creates a new essential category. It checks if the essentialName already exists in the database (case-insensitive). If it exists, it returns an error message. Otherwise, it creates a new essential category using the Essential model with the provided essentialName, imageUrl, and user (from req.user.id). It responds with a success message and the created essential category.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} req.body - The request body containing the essentialName and imageUrl.
+ * @param {string} req.body.essentialName - The name of the essential.
+ * @param {string} req.body.imageUrl - The URL of the image for the essential.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function.
+ * @returns {Object} - The JSON response indicating the success status and the created essential category.
+ * @throws {Error} - If an error occurs while creating the essential category.
+ */
+
+//Create essential category
+exports.createEssentialsType = catchAsyncErrors(async (req, res, next) => {
+    try {
+      const essentialName = req.body.essentialName;
+      const imageUrl = req.body.imageUrl;
+
+      // Check if the essentialName already exists in the database (case-insensitive)
+      const existingEssential = await Essential.findOne({ essentialName: { $regex: new RegExp(`^${essentialName}$`, "i") } });
+  
+      if (existingEssential) {
+        return res.status(400).json({
+          success: false,
+          message: "this type already exists"
+        });
+      }
+  
+      // Create a new essentialName type
+      const essentialT = await Essential.create({
+        essentialName,
+        imageUrl,
+        user: req.user.id
+      });
+      
+      res.status(201).json({
+        success: true,
+        essentialT
+      });
+    } catch (error) {
+      next(error);
+    }
+  });
+
+  /**
+ * This function retrieves all essential categories from the database using the Essential model. It responds with a success message and an array of essential categories.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function.
+ * @returns {Object} - The JSON response containing the retrieved essential categories.
+ * @throws {Error} - If an error occurs while retrieving the essential categories.
+ */
+
+  //get all essential category
+exports.allEssentialsType = catchAsyncErrors(async (req, res, next) => {
+    try {
+        const essentialT = await Essential.find();
+        res.status(200).json({
+            success: true,
+            essentialT
+        })
+    } catch (error) {
+        next(error);
+    }
+})
+
+
+/**
+ * Update an essential category.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} req.params - The parameters extracted from the URL.
+ * @param {string} req.params.type_id - The ID of the essential category to update.
+ * @param {Object} req.body - The request body containing the updated data for the essential category.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function.
+ * @returns {Object} - The JSON response indicating the success status and the updated essential category.
+ * @throws {Error} - If an error occurs while updating the essential category.
+ */
+
+  //Update  essential category
+exports.updateEssentialType = catchAsyncErrors(async (req, res, next) => {
+    try {
+        const essentialT = await Essential.findByIdAndUpdate(req.params.type_id, req.body, { new: true });
+        res.status(200).json({
+            success: true,
+            essentialT
+        })
+    } catch (error) {
+        next(error);
+    }
+})
+
+/**
+ * Delete an essential category.
+ *
+ * @param {Object} req - The request object.
+ * @param {Object} req.params - The parameters extracted from the URL.
+ * @param {string} req.params.type_id - The ID of the essential category to delete.
+ * @param {Object} res - The response object.
+ * @param {Function} next - The next middleware function.
+ * @returns {Object} - The JSON response indicating the success status and the deleted essential category.
+ * @throws {Error} - If an error occurs while deleting the essential category.
+ */
+
+  //delete  essential category
+exports.deleteEssentialType = catchAsyncErrors(async (req, res, next) => {
+    try {
+        const essentialT = await Essential.findByIdAndRemove(req.params.type_id);
+        res.status(200).json({
+            success: true,
+            essentialT
+        })
+    } catch (error) {
+        next(error);
+    }
+})
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="ErrorHandler.html">ErrorHandler</a></li></ul><h3>Events</h3><ul><li><a href="server.html#.event:listen">listen</a></li></ul><h3>Global</h3><ul><li><a href="global.html#addVarieties">addVarieties</a></li><li><a href="global.html#allAnimalType">allAnimalType</a></li><li><a href="global.html#allEssentialsType">allEssentialsType</a></li><li><a href="global.html#allTreatmentType">allTreatmentType</a></li><li><a href="global.html#allmedicalCareType">allmedicalCareType</a></li><li><a href="global.html#catchAsyncErrors">catchAsyncErrors</a></li><li><a href="global.html#connectDatabase">connectDatabase</a></li><li><a href="global.html#createAnimalType">createAnimalType</a></li><li><a href="global.html#createEssentialsType">createEssentialsType</a></li><li><a href="global.html#createMedicalType">createMedicalType</a></li><li><a href="global.html#createProduct">createProduct</a></li><li><a href="global.html#createProductReview">createProductReview</a></li><li><a href="global.html#createTreatmentType">createTreatmentType</a></li><li><a href="global.html#deleteAnimalType">deleteAnimalType</a></li><li><a href="global.html#deleteEssentialType">deleteEssentialType</a></li><li><a href="global.html#deleteMedicalCareType">deleteMedicalCareType</a></li><li><a href="global.html#deleteOrder">deleteOrder</a></li><li><a href="global.html#deleteProduct">deleteProduct</a></li><li><a href="global.html#deleteReview">deleteReview</a></li><li><a href="global.html#deleteTreatmentType">deleteTreatmentType</a></li><li><a href="global.html#deleteVarieties">deleteVarieties</a></li><li><a href="global.html#errorHandler">errorHandler</a></li><li><a href="global.html#forgotPassword">forgotPassword</a></li><li><a href="global.html#getAdminProducts">getAdminProducts</a></li><li><a href="global.html#getAllOrders">getAllOrders</a></li><li><a href="global.html#getAllUser">getAllUser</a></li><li><a href="global.html#getProductDetails">getProductDetails</a></li><li><a href="global.html#getProductReviews">getProductReviews</a></li><li><a href="global.html#getSingleOrder">getSingleOrder</a></li><li><a href="global.html#getSingleUser">getSingleUser</a></li><li><a href="global.html#getUserDetails">getUserDetails</a></li><li><a href="global.html#getVaritiesDetails">getVaritiesDetails</a></li><li><a href="global.html#isAuthenticatedUser">isAuthenticatedUser</a></li><li><a href="global.html#loginUser">loginUser</a></li><li><a href="global.html#logout">logout</a></li><li><a href="global.html#myOrders">myOrders</a></li><li><a href="global.html#newOrder">newOrder</a></li><li><a href="global.html#registerUser">registerUser</a></li><li><a href="global.html#resetPassword">resetPassword</a></li><li><a href="global.html#sendEmail">sendEmail</a></li><li><a href="global.html#showAllProducts">showAllProducts</a></li><li><a href="global.html#updateAnimalType">updateAnimalType</a></li><li><a href="global.html#updateEssentialType">updateEssentialType</a></li><li><a href="global.html#updateOrderStatus">updateOrderStatus</a></li><li><a href="global.html#updatePassword">updatePassword</a></li><li><a href="global.html#updateProduct">updateProduct</a></li><li><a href="global.html#updateProfile">updateProfile</a></li><li><a href="global.html#updateStock">updateStock</a></li><li><a href="global.html#updateUserRole">updateUserRole</a></li><li><a href="global.html#updateVarieties">updateVarieties</a></li><li><a href="global.html#updatemedicalCareType">updatemedicalCareType</a></li><li><a href="global.html#updatetreatmentType">updatetreatmentType</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.2</a> on Sat Jun 10 2023 13:11:57 GMT+0530 (India Standard Time)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
